@@ -1,0 +1,35 @@
+networks:
+  default:
+    driver: bridge
+
+services:
+  master:
+    build: ros/Dockerfile
+    container_name: master
+    command: roslaunch --screen foxglove_bridge foxglove_bridge.launch
+    ports:
+      - 11311:11311
+      - 9090:9090
+    networks:
+      - default
+  
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - ROS_MASTER_URI=http://localhost:11311
+    container_name: 3d_detection
+    
+    command: python ./main.py detection configs/config.py checkpoints/weights.pth
+    networks:
+      - default
+    depends_on:
+      - master
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+              count: 1

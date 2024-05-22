@@ -89,7 +89,7 @@ def get_per_box_predictions(result, score_thr, selected_classes, cfg, center_vec
         results.append(det)
     return results
 
-def inference_model(model, points, gt_index_to_labels, model_name, thresh=0.3, selected_classes=None,
+def inference_model(model, pcd, gt_index_to_labels, model_name, thresh=0.3, selected_classes=None,
                     apply_sw=None, center_ptc=None):
     if isinstance(center_ptc, dict):
         center_ptc = list(center_ptc.values())
@@ -97,9 +97,9 @@ def inference_model(model, points, gt_index_to_labels, model_name, thresh=0.3, s
     pcr = model.cfg.point_cloud_range
     pcr_dim = [pcr[3] - pcr[0], pcr[4] - pcr[1], pcr[5] - pcr[2]]
     input_ptc_dim = [
-        points[:,0].max() - points[:,0].min(),
-        points[:,1].max() - points[:,1].min(),
-        points[:,2].max() - points[:,2].min()
+        pcd[:,0].max() - pcd[:,0].min(),
+        pcd[:,1].max() - pcd[:,1].min(),
+        pcd[:,2].max() - pcd[:,2].min()
     ]
 
     sboxes = get_slide_boxes(input_ptc_dim, pcr_dim, apply_sw)
@@ -110,8 +110,8 @@ def inference_model(model, points, gt_index_to_labels, model_name, thresh=0.3, s
         for i in range(3):
             if center_ptc is None or center_ptc[i]:
                 pcd_sbox.extend([
-                    points[:,i].min() + sbox[i*2],
-                    points[:,i].min() + sbox[i*2+1]
+                    pcd[:,i].min() + sbox[i*2],
+                    pcd[:,i].min() + sbox[i*2+1]
                 ])
             else:
                 pcd_sbox.extend([
@@ -124,13 +124,13 @@ def inference_model(model, points, gt_index_to_labels, model_name, thresh=0.3, s
     # TODO: is it possible to use batch inference here?
     for sbox in pcd_sboxes:
         pcd_eps = 1e-3
-        pcd_slide = points[
-            (points[:,0] > sbox[0] - pcd_eps) &
-            (points[:,0] < sbox[1] + pcd_eps) &
-            (points[:,1] > sbox[2] - pcd_eps) &
-            (points[:,1] < sbox[3] + pcd_eps) &
-            (points[:,2] > sbox[4] - pcd_eps) &
-            (points[:,2] < sbox[5] + pcd_eps)
+        pcd_slide = pcd[
+            (pcd[:,0] > sbox[0] - pcd_eps) &
+            (pcd[:,0] < sbox[1] + pcd_eps) &
+            (pcd[:,1] > sbox[2] - pcd_eps) &
+            (pcd[:,1] < sbox[3] + pcd_eps) &
+            (pcd[:,2] > sbox[4] - pcd_eps) &
+            (pcd[:,2] < sbox[5] + pcd_eps)
         ]
         if len(pcd_slide) == 0:
             continue

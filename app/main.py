@@ -1,101 +1,104 @@
 from mmcv import Config
 from mmdet3d.apis import init_model
 import torch
-import plotly.graph_objects as go
-import open3d as o3d
 import numpy as np
-import os
 import time
-from threading import Thread
+import argparse
 
-from scipy.spatial.transform import Rotation
-from pyquaternion import Quaternion
+import rospy
+from sensor_msgs.msg import PointCloud2
+from visualization_msgs.msg import MarkerArray
+import std_msgs.msg as std_msg
+import ros_numpy
+
+import open3d as o3d
 
 from src.utils.inference import inference_model
-from src.utils.bounding_box import BoundingBox
+from src.utils.markers import Markers
 import src.models.centerpoint
 
-# config
-cfg = Config.fromfile("configs/config.py")
-cfg.data.test.box_type_3d = "lidar"
-device = torch.device("cuda:0") if torch.cuda.is_available() else "cpu"
-model = init_model(cfg, "checkpoints/weights.pth", device)
-model_name = "CenterPoint"
+def msgpcd2points(msg):
+	points = ros_numpy.numpify(msg)
+	points.dtype = np.float32
+	points = points.reshape((-1, len(msg.fields)))
+	return points
 
-labels = cfg["class_names"]
-gt_index_to_labels = dict(enumerate(labels))
+def save_pcd(points):
+	pcd = o3d.geometry.PointCloud()
+	
+	pc = np.zeros((len(points), 3))
+	pc[:, 0] = points[:, 0]
+	pc[:, 1] = points[:, 1]
+	pc[:, 2] = points[:, 2]
+	pcd.points = o3d.utility.Vector3dVector(pc)
 
-local_pointcloud_path = 'pcds/'
+	o3d.io.write_point_cloud(f'save/{time.time()}.pcd', pcd)
 
-pcd_paths = []
-for file in os.listdir(local_pointcloud_path):
-    if file.endswith(".pcd"):
-        pcd_paths.append(local_pointcloud_path + file)
+def main(args):
+	# ROS init
+	rospy.init_node(args.node_name)
+	rospy.loginfo('Node is initialized')
 
-def extract_xyz(pcd_file):
-    pcd = o3d.io.read_point_cloud(pcd_file)
-    points = np.asarray(pcd.points)
-    x = points[:, 0]
-    y = points[:, 1]
-    z = points[:, 2] 
-    return points, x, y, z
+	# Config
+	rospy.loginfo('Loading config and weight for model...')
+	cfg = Config.fromfile(args.config)
+	cfg.data.test.box_type_3d = "lidar"
+	device = torch.device("cuda:0") if torch.cuda.is_available() else "cpu"
+	model = init_model(cfg, args.weight, device)
+	model_name = "CenterPoint"
 
-def get_box_vertexes(center, size, rotation):
-    rot = Rotation.from_rotvec(rotation)
-    rot_mat = rot.as_matrix()
-    orientation = Quaternion(matrix=rot_mat)
-    bbox = BoundingBox(center, size, orientation)
-    return bbox.corners()
+	labels = cfg["class_names"]
+	gt_index_to_labels = dict(enumerate(labels))
+	
+	rospy.loginfo('Config and weight loaded')
+	
+	# Main block
+	markers = Markers()
+
+	pub_boxs = rospy.Publisher('/detection/boxs', MarkerArray, queue_size=args.queue_size)
+	pub_people = rospy.Publisher('/detection/people', std_msg.Int8, queue_size=args.queue_size)
+	pub_inf_time = rospy.Publisher('/detection/inference_time', std_msg.Float32, queue_size=args.queue_size)
+
+	def receive_pointcloud(msg):
+		rospy.loginfo('Message is received')
+		points = msgpcd2points(msg)
+
+		# Save pcd files
+		if args.save:
+			save_pcd(points)
+
+		start = time.time()
+		results = inference_model(model, points, gt_index_to_labels, model_name)
+		inf_time = time.time() - start
+		rospy.loginfo(f'Inference time = {inf_time}s')
+		
+		for result in results:
+			markers.append_marker(
+				center=result["translation"],
+				size=result["size"],
+				rotation=[0, 0, result["rotation"] + (np.pi / 2)],
+			)
+
+		pub_boxs.publish(markers.markers)
+		pub_people.publish(len(markers.markers.markers))
+		pub_inf_time.publish(inf_time)
+
+		markers.clear()
+
+	rospy.Subscriber(args.topic_cloud, PointCloud2, receive_pointcloud, queue_size=args.queue_size)
+	rospy.loginfo('Listening started')
+
+	# Loop
+	rospy.spin()
 
 if __name__ == "__main__":
-    for pcd_path in pcd_paths:
-        points, pcd_x, pcd_y, pcd_z = extract_xyz(pcd_path)
+	parser = argparse.ArgumentParser(description='Lidar Object Detection')
+	parser.add_argument('node_name', type=str)
+	parser.add_argument('config', type=str) # /tmp/mmdet3d/mmdetection3d/configs/centerpoint/centerpoint_0075voxel_second_secfpn_dcn_circlenms_4x8_cyclic_20e_nus.py
+	parser.add_argument('weight', type=str) # checkpoints/centerpoint_0075voxel_second_secfpn_dcn_circlenms_4x8_cyclic_20e_nus_20220810_025930-657f67e0.pth
+	parser.add_argument('-c', '--topic_cloud', type=str, default='/cloud') # points_for_save
+	parser.add_argument('-s', '--save', type=bool, default=False)
+	parser.add_argument('--queue_size', type=int, default=10)
+	args = parser.parse_args()
 
-        start = time.time()
-        results = inference_model(model, points, gt_index_to_labels, model_name)
-        print(f'Inference time = {time.time() - start}s')
-
-    boxes_data = []
-    for result in results:
-        box_x, box_y, box_z = get_box_vertexes(
-            center=result["translation"],
-            size=result["size"],
-            rotation=[0, 0, result["rotation"] + (np.pi / 2)],
-        )
-        box_viz = go.Mesh3d(
-            x=box_x,
-            y=box_y,
-            z=box_z,
-            i = [7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2],
-            j = [3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
-            k = [0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
-            opacity=0.3,
-            color='#DC143C',
-            flatshading = True
-        )
-        boxes_data.append(box_viz)
-
-    boxes_data.insert(0, go.Scatter3d(
-            x=pcd_x,
-            y=pcd_y,
-            z=pcd_z,
-            mode='markers',
-            marker=dict(
-                size=2,
-                opacity=0.8
-            )))
-
-    # visualize inference results
-    fig = go.Figure(data=boxes_data)
-    fig.update_layout(
-        margin=dict(l=0, r=0, b=0, t=0),
-        scene=dict(
-            xaxis_title='X',
-            yaxis_title='Y',
-            zaxis_title='Z',
-            xaxis=dict(range=[-100, 100]),
-            yaxis=dict(range=[-80, 80]),
-            zaxis=dict(range=[-30, 30])
-        ),
-    )   
-    fig.show()
+	main(args)
