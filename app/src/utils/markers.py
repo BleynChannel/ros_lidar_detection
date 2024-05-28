@@ -18,6 +18,7 @@ class Markers:
 		marker.header.stamp = Time.now()
 		marker.type = marker.CUBE
 		marker.action = marker.ADD
+		marker.lifetime = 10.0
 		marker.color = ColorRGBA(1.0, 0.0, 0.0, 1.0)
 
 		marker.pose.position.x = center[0]

@@ -1,4 +1,3 @@
-import open3d as o3d
 import numpy as np
 from mmdet3d.apis import inference_detector
 from mmdet3d.core.points.lidar_points import LiDARPoints

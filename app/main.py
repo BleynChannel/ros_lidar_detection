@@ -3,6 +3,7 @@ from mmdet3d.apis import init_model
 import torch
 import numpy as np
 import time
+from pathlib import Path
 import argparse
 
 import rospy
@@ -32,7 +33,13 @@ def save_pcd(points):
 	pc[:, 2] = points[:, 2]
 	pcd.points = o3d.utility.Vector3dVector(pc)
 
-	o3d.io.write_point_cloud(f'save/{time.time()}.pcd', pcd)
+	path = f'save/{time.time()}.pcd'
+	o3d.io.write_point_cloud(path, pcd)
+	return path
+
+def read_pcd(path):
+	pcd = o3d.io.read_point_cloud(path)
+	return np.asarray(pcd.points)
 
 def main(args):
 	# ROS init
@@ -65,7 +72,10 @@ def main(args):
 
 		# Save pcd files
 		if args.save:
-			save_pcd(points)
+			Path("save").mkdir(exist_ok=True)
+
+			path = save_pcd(points)
+			points = read_pcd(path)
 
 		start = time.time()
 		results = inference_model(model, points, gt_index_to_labels, model_name)
@@ -94,10 +104,10 @@ def main(args):
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Lidar Object Detection')
 	parser.add_argument('node_name', type=str)
-	parser.add_argument('config', type=str) # /tmp/mmdet3d/mmdetection3d/configs/centerpoint/centerpoint_0075voxel_second_secfpn_dcn_circlenms_4x8_cyclic_20e_nus.py
-	parser.add_argument('weight', type=str) # checkpoints/centerpoint_0075voxel_second_secfpn_dcn_circlenms_4x8_cyclic_20e_nus_20220810_025930-657f67e0.pth
-	parser.add_argument('-c', '--topic_cloud', type=str, default='/cloud') # points_for_save
-	parser.add_argument('-s', '--save', type=bool, default=False)
+	parser.add_argument('config', type=str)
+	parser.add_argument('weight', type=str)
+	parser.add_argument('-t', '--topic_cloud', type=str, default='/cloud')
+	parser.add_argument('-s', '--save', action="store_true", default=False)
 	parser.add_argument('--queue_size', type=int, default=10)
 	args = parser.parse_args()
 

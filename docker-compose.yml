@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  master:
+    image: husarion/rosbridge-server:noetic
+    command: roslaunch rosbridge_server rosbridge_websocket.launch
+    ports:
+      - 11311:11311
+      - 9090:9090
+  
+  detection:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - "ROS_MASTER_URI=http://master:11311"
+    command: python main.py detection configs/centerpoint_v2.py checkpoints/centerpoint_v2.pth -s -t points_for_save
+    depends_on:
+      - master
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+              count: 1

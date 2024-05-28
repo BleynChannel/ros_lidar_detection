@@ -1,8 +1,10 @@
-FROM bleyn/mmdet3d-ros:1.0.0rc4-noetic
+ARG ROS_DISTRO=noetic
+
+FROM bleyn/mmdet3d-ros:1.0.0rc4-$ROS_DISTRO
 
 RUN pip install --no-cache-dir rosnumpy
 
 COPY /app /app
 WORKDIR /app
 
-CMD [ "python", "main.py", "detection", "configs/config.py", "checkpoints/weights.pth" ]
+RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
