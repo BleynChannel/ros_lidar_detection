@@ -63,6 +63,10 @@ python main.py detection configs/centerpoint_v2.py checkpoints/centerpoint_v2.pt
 
 ------------------------
 
+# TODO
+- [ ] Add more models
+- [ ] Embed TorchServe API to the project
+
 # Credit
 This project based on [MMDetection3D API]() and [Supervisely]().
 

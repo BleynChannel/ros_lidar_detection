@@ -17,7 +17,7 @@ services:
       - ..:/workspace:cached
     environment:
       - "ROS_MASTER_URI=http://master:11311"
-    command: sleep infinity # /bin/sh -c "while sleep 1000; do :; done"
+    command: sleep infinity
     depends_on:
       - master
     network_mode: service:master
