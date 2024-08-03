@@ -74,6 +74,7 @@ def main(args):
 		if args.save:
 			Path("save").mkdir(exist_ok=True)
 
+			#TODO: Change this block
 			path = save_pcd(points)
 			points = read_pcd(path)
 
@@ -94,6 +95,10 @@ def main(args):
 		pub_inf_time.publish(inf_time)
 
 		markers.clear()
+
+	#TODO: Remove this block
+	import segm_save
+	import segm_save_screen
 
 	rospy.Subscriber(args.topic_cloud, PointCloud2, receive_pointcloud, queue_size=args.queue_size)
 	rospy.loginfo('Listening started')

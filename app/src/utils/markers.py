@@ -1,4 +1,4 @@
-from rospy import Time
+from rospy import Time, Duration
 from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA
 from scipy.spatial.transform import Rotation
@@ -18,7 +18,7 @@ class Markers:
 		marker.header.stamp = Time.now()
 		marker.type = marker.CUBE
 		marker.action = marker.ADD
-		marker.lifetime = 10.0
+		marker.lifetime = Duration(secs=10)
 		marker.color = ColorRGBA(1.0, 0.0, 0.0, 1.0)
 
 		marker.pose.position.x = center[0]
