@@ -1,4 +1,4 @@
-# Lidar Object Detection
+# ROS Lidar Object Detection
 
 > **WIP**
 
@@ -7,7 +7,7 @@
 </div>
 
 # Introduction
-**Lidar Object Detection** - algorithm for detection object on lidar point cloud. This algorithm based on CenterPoint algorithm and connected with [ROS 1 Noetic]()/[ROS 2 Humble]().
+**ROS Lidar Object Detection** - algorithm for detection object on lidar point cloud. This algorithm based on CenterPoint algorithm and connected with [ROS 1 Noetic]()/[ROS 2 Humble]().
 
 # Getting Started
 
