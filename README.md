@@ -1,10 +1,10 @@
 # ROS Lidar Object Detection
 
-> **WIP**
-
 <div align="center">
-	[📘Documentation]() | [💻Install]() | [🐼Model Zoo]() |
+	<a href="">📘Documentation</a> | <a href="">💻Install</a> | <a href="">🐼Model Zoo</a>
 </div>
+
+> **README.md WIP**
 
 # Introduction
 **ROS Lidar Object Detection** - algorithm for detection object on lidar point cloud. This algorithm based on CenterPoint algorithm and connected with [ROS 1 Noetic]()/[ROS 2 Humble]().
