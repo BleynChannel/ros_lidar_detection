@@ -27,7 +27,7 @@ docker-compose up --build
 
 # For Developers
 ## Dev container
-This repository contains the necessary files to build a Docker container for Lidar Object Detection development using Visual Studio Code.
+This repository contains the necessary files to build a Docker container for Lidar Object Detection in development using Visual Studio Code.
 
 ### Prerequisites
 Before you begin, ensure you have the following installed:
