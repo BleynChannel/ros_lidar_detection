@@ -21,8 +21,6 @@ def pointcloud_callback(point_cloud_msg):
     point_generator = pc2.read_points(point_cloud_msg)
     modified_points = []
 
-    print(point_generator is not None)
-
     for point in point_generator:
         if not math.isnan(point[2]):
             point_inside = False
@@ -38,7 +36,7 @@ def pointcloud_callback(point_cloud_msg):
                 r, g, b, a = 0, 0, 204, 255
 
             if (-0.73 <= point[0] <= 2.07) and (-1.16 <= point[1] <= 1) and (point[2] <= 1.6):
-                r, g, b, a = 255, 255, 255, 255
+                r, g, b, a = 240, 0, 204, 255
 
                 
             rgb = struct.unpack('I', struct.pack('BBBB', b, g, r, a))[0]
@@ -53,7 +51,7 @@ def pointcloud_callback(point_cloud_msg):
                         break
 
                 if point_inside:
-                    r, g, b, a = 128, 0, 128, 255
+                    r, g, b, a = 255, 255, 255, 255
                     rgb = struct.unpack('I', struct.pack('BBBB', b, g, r, a))[0]
                     modified_point = [point[0], point[1], point[2], rgb]
             
